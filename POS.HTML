@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Depot Mini POS Pro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+:root{
+  --primary:#2563eb;
+  --bg:#f1f5f9;
+  --card:#ffffff;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:'Segoe UI', sans-serif;
+  background:var(--bg);
+}
+.container{
+  max-width:1100px;
+  margin:auto;
+  padding:20px;
+}
+.card{
+  background:var(--card);
+  border-radius:14px;
+  padding:20px;
+  box-shadow:0 10px 25px rgba(0,0,0,.08);
+  margin-bottom:20px;
+}
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.menu-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:20px;
+}
+.menu-card{
+  border-radius:14px;
+  overflow:hidden;
+  box-shadow:0 8px 20px rgba(0,0,0,.08);
+  background:#fff;
+}
+.menu-card img{
+  width:100%;
+  height:150px;
+  object-fit:cover;
+}
+.menu-card .info{
+  padding:14px;
+}
+.menu-card h3{margin:0}
+button{
+  background:var(--primary);
+  color:#fff;
+  border:none;
+  padding:10px 16px;
+  border-radius:8px;
+  cursor:pointer;
+}
+button:hover{opacity:.9}
+input{
+  width:100%;
+  padding:10px;
+  margin:8px 0;
+}
+.hidden{display:none}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px;border-bottom:1px solid #ddd}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- LOGIN -->
+<div class="card" id="loginCard" style="max-width:420px;margin:80px auto;text-align:center">
+<h1 style="margin-bottom:0">🍗 Depot Mini POS</h1>
+<p style="color:#64748b;margin-top:6px">Admin Login</p>
+
+<div style="position:relative;margin-top:20px">
+  <input type="password" id="password" placeholder="Masukkan password" style="padding-left:40px">
+  <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.6">🔒</span>
+</div>
+
+<button style="width:100%;margin-top:10px" onclick="login()">Masuk</button>
+<p id="loginMsg" style="color:red;margin-top:10px"></p>
+<p style="font-size:12px;color:#94a3b8;margin-top:20px">© 2026 Depot Mini POS</p>
+</div>
+
+<!-- POS -->
+<div class="hidden" id="posArea">
+<header class="card">
+<h2>Kasir</h2>
+<p><b>Total:</b> Rp <span id="total">0</span></p>
+</header>
+
+<!-- MENU -->
+<div class="menu-grid">
+<div class="menu-card">
+<img src="images (3).jpg" />
+<div class="info">
+<h3>Paket A</h3>
+<p>Ayam + Nasi + Minum</p>
+<p><b>Rp25.000</b></p>
+<input type="number" min="1" value="1" id="qtyA">
+<button onclick="addItem('Paket A',25000,qtyA.value)">Tambah</button>
+</div></div>
+
+<div class="menu-card">
+<img src="images (2).jpg" />
+<div class="info">
+<h3>Paket B</h3>
+<p>Ayam + Nasi + Minum + Kentang</p>
+<p><b>Rp30.000</b></p>
+<input type="number" min="1" value="1" id="qtyB">
+<button onclick="addItem('Paket B',30000,qtyB.value)">Tambah</button>
+</div></div>
+
+<div class="menu-card">
+<img src="download (4).jpg" />
+<div class="info">
+<h3>Paket C</h3>
+<p>Komplit</p>
+<p><b>Rp40.000</b></p>
+<input type="number" min="1" value="1" id="qtyC">
+<button onclick="addItem('Paket C',40000,qtyC.value)">Tambah</button>
+</div></div>
+</div>
+
+<!-- PEMBAYARAN -->
+<div class="card">
+<h3>Pembayaran</h3>
+<input type="number" id="bayar" placeholder="Bayar">
+<button onclick="pay()">Bayar</button>
+<p>Kembalian: Rp <span id="kembalian">0</span></p>
+</div>
+
+<!-- STRUK -->
+<div class="card">
+<h3>Struk</h3>
+<pre id="receipt">Belum ada transaksi</pre>
+</div>
+
+<!-- RIWAYAT -->
+<div class="card">
+<h3>Riwayat Transaksi</h3>
+<table><thead><tr><th>Tanggal</th><th>Total</th></tr></thead><tbody id="history"></tbody></table>
+</div>
+</div>
+</div>
+
+<script>
+const PASS = 'admin123';
+let total = 0;
+let items = [];
+let history = JSON.parse(localStorage.getItem('history')) || [];
+
+const loginCard = document.getElementById('loginCard');
+const posArea = document.getElementById('posArea');
+const passwordInput = document.getElementById('password');
+const loginMsg = document.getElementById('loginMsg');
+const totalSpan = document.getElementById('total');
+const bayarInput = document.getElementById('bayar');
+const kembaliSpan = document.getElementById('kembalian');
+const receiptPre = document.getElementById('receipt');
+const historyBody = document.getElementById('history');
+
+function login(){
+  if(passwordInput.value === PASS){
+    loginCard.classList.add('hidden');
+    posArea.classList.remove('hidden');
+    renderHistory();
+  } else loginMsg.innerText='Password salah';
+}
+
+function addItem(name, price, qty){
+  qty = parseInt(qty);
+  if(qty <= 0) return alert('Jumlah tidak valid');
+  const sub = price * qty;
+  items.push({name,qty,sub});
+  total += sub;
+  totalSpan.innerText = total;
+}
+
+function pay(){
+  if(total === 0) return alert('Belum ada pesanan');
+  const bayar = parseInt(bayarInput.value);
+  if(bayar < total) return alert('Uang kurang');
+
+  const kembali = bayar - total;
+  kembaliSpan.innerText = kembali;
+
+  let text = 'DEPOT MINI POS\n'+new Date().toLocaleString()+'\n\n';
+  items.forEach(i=>text+=`${i.name} x${i.qty} = Rp ${i.sub}\n`);
+  text += `\nTOTAL: Rp ${total}\nBAYAR: Rp ${bayar}\nKEMBALI: Rp ${kembali}`;
+  receiptPre.innerText = text;
+
+  history.push({date:new Date().toLocaleString(), total});
+  localStorage.setItem('history',JSON.stringify(history));
+  renderHistory();
+
+  items=[]; total=0; totalSpan.innerText=0; bayarInput.value='';
+}
+
+function renderHistory(){
+  historyBody.innerHTML='';
+  history.forEach(h=>{
+    historyBody.innerHTML+=`<tr><td>${h.date}</td><td>Rp ${h.total}</td></tr>`;
+  });
+}
+</script>
+</body>
+</html>
